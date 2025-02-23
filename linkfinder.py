@@ -44,7 +44,7 @@ regex_str = r"""
     |
 
     ([a-zA-Z0-9_\-/]{1,}/               # Relative endpoint with /
-    [a-zA-Z0-9_\-/]{1,}                 # Resource name
+    [a-zA-Z0-9_\-/.]{1,}                # Resource name
     \.(?:[a-zA-Z]{1,4}|action)          # Rest + extension (length 1-4 or action)
     (?:[\?|#][^"|']{0,}|))              # ? or # mark with parameters
 
@@ -104,9 +104,10 @@ def parser_input(input):
     # Method 4 - Folder with a wildcard
     if "*" in input:
         paths = glob.glob(os.path.abspath(input))
-        for index, path in enumerate(paths):
-            paths[index] = "file://%s" % path
-        return (paths if len(paths) > 0 else parser_error('Input with wildcard does \
+        file_paths = [p for p in paths if os.path.isfile(p)]
+        for index, path in enumerate(file_paths):
+            file_paths[index] = "file://%s" % path
+        return (file_paths if len(file_paths) > 0 else parser_error('Input with wildcard does \
         not match any files.'))
 
     # Method 5 - Local file
@@ -130,10 +131,10 @@ def send_request(url):
     q.add_header('Cookie', args.cookies)
 
     try:
-        sslcontext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+        sslcontext = ssl.create_default_context()
         response = urlopen(q, timeout=args.timeout, context=sslcontext)
     except:
-        sslcontext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        sslcontext = ssl.create_default_context()
         response = urlopen(q, timeout=args.timeout, context=sslcontext)
 
     if response.info().get('Content-Encoding') == 'gzip':
